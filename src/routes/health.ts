@@ -17,7 +17,7 @@ export function registerHealthRoutes(app: FastifyInstance) {
         },
       },
     },
-    async () => {
+    () => {
       return {
         ok: true,
         service: "greyline-be",

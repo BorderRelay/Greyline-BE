@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+node scripts/husky/validate-branch.mjs
+npm exec lint-staged

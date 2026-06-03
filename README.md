@@ -9,6 +9,14 @@ Backend API repository for `Greyline`.
 - Fastify
 - PostgreSQL
 
+## Baseline Tooling
+
+- ESLint
+- Prettier
+- Husky
+- lint-staged
+- Vitest
+
 ## Purpose
 
 This service is responsible for:
@@ -37,3 +45,12 @@ Key docs:
 - `npm run build`
 - `npm run start`
 - `npm run check`
+- `npm run lint`
+- `npm run lint:fix`
+- `npm run format`
+- `npm run format:check`
+- `npm run test`
+
+## Environment
+
+Create a local `.env` from `.env.example` before running the server.
