@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
@@ -27,6 +28,8 @@
     "fastify": "^5.6.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.29.0",
     "@types/node": "^24.0.3",
     "eslint": "^9.29.0",
