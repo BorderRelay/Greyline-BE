@@ -31,4 +31,5 @@ export const env = {
     "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/greyline",
   ),
+  DATABASE_SCHEMA: readString("DATABASE_SCHEMA", "greyline_be"),
 } as const;
