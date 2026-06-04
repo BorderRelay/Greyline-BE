@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
-const containerName = "greyline-postgres";
+const preferredContainerName = "postgres-sql";
+const legacyContainerName = "greyline-postgres";
 const image = "postgres:17";
 const dbName = "greyline";
 const dbUser = "postgres";
@@ -18,36 +19,33 @@ function runDocker(args, options = {}) {
   }).trim();
 }
 
-function hasContainer() {
-  const output = runDocker([
-    "ps",
-    "-a",
-    "--filter",
-    `name=^/${containerName}$`,
-    "--format",
-    "{{.Names}}",
-  ]);
-  return output === containerName;
+function hasContainer(name = preferredContainerName) {
+  const output = runDocker(["ps", "-a", "--filter", `name=^/${name}$`, "--format", "{{.Names}}"]);
+  return output === name;
 }
 
-function isRunning() {
-  const output = runDocker([
-    "ps",
-    "--filter",
-    `name=^/${containerName}$`,
-    "--format",
-    "{{.Names}}",
-  ]);
-  return output === containerName;
+function isRunning(name = preferredContainerName) {
+  const output = runDocker(["ps", "--filter", `name=^/${name}$`, "--format", "{{.Names}}"]);
+  return output === name;
+}
+
+function renameLegacyContainer() {
+  if (hasContainer(preferredContainerName) || !hasContainer(legacyContainerName)) {
+    return;
+  }
+
+  runDocker(["rename", legacyContainerName, preferredContainerName]);
 }
 
 function ensureContainer() {
+  renameLegacyContainer();
+
   if (!hasContainer()) {
     runDocker([
       "run",
       "-d",
       "--name",
-      containerName,
+      preferredContainerName,
       "-e",
       `POSTGRES_DB=${dbName}`,
       "-e",
@@ -64,14 +62,14 @@ function ensureContainer() {
   }
 
   if (!isRunning()) {
-    runDocker(["start", containerName]);
+    runDocker(["start", preferredContainerName]);
   }
 }
 
 function waitUntilReady() {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      runDocker(["exec", containerName, "pg_isready", "-U", dbUser, "-d", dbName]);
+      runDocker(["exec", preferredContainerName, "pg_isready", "-U", dbUser, "-d", dbName]);
       return;
     } catch {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
@@ -84,20 +82,22 @@ function waitUntilReady() {
 if (command === "up") {
   ensureContainer();
   waitUntilReady();
-  console.log(`PostgreSQL container ${containerName} is ready.`);
+  console.log(`PostgreSQL container ${preferredContainerName} is ready.`);
   process.exit(0);
 }
 
 if (command === "down") {
   if (hasContainer()) {
-    runDocker(["stop", containerName]);
+    runDocker(["stop", preferredContainerName]);
+  } else if (hasContainer(legacyContainerName)) {
+    runDocker(["stop", legacyContainerName]);
   }
-  console.log(`PostgreSQL container ${containerName} stopped.`);
+  console.log(`PostgreSQL container ${preferredContainerName} stopped.`);
   process.exit(0);
 }
 
 if (command === "status") {
-  console.log(isRunning() ? "running" : "stopped");
+  console.log(isRunning() || isRunning(legacyContainerName) ? "running" : "stopped");
   process.exit(0);
 }
 

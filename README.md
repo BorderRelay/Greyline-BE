@@ -61,7 +61,7 @@ Create a local `.env` from `.env.example` before running the server.
 
 ## Local PostgreSQL
 
-The backend connects to a single standalone PostgreSQL Docker container that is not managed by compose.
+The backend connects to a single standalone PostgreSQL Docker container named `postgres-sql` that is not managed by compose.
 The container exposes `5432` on the host and the service uses its own schema inside the shared database.
 `npm run dev` first tries the configured `DATABASE_URL`. If the database is not reachable and the target is local, it starts the managed Docker container and then runs migrations before starting the server.
 
