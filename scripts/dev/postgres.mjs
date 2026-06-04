@@ -29,6 +29,12 @@ function isRunning(name = preferredContainerName) {
   return output === name;
 }
 
+function ensureRestartPolicy(name = preferredContainerName) {
+  if (hasContainer(name)) {
+    runDocker(["update", "--restart", "always", name]);
+  }
+}
+
 function renameLegacyContainer() {
   if (hasContainer(preferredContainerName) || !hasContainer(legacyContainerName)) {
     return;
@@ -39,11 +45,14 @@ function renameLegacyContainer() {
 
 function ensureContainer() {
   renameLegacyContainer();
+  ensureRestartPolicy();
 
   if (!hasContainer()) {
     runDocker([
       "run",
       "-d",
+      "--restart",
+      "always",
       "--name",
       preferredContainerName,
       "-e",
