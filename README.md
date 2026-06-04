@@ -54,3 +54,18 @@ Key docs:
 ## Environment
 
 Create a local `.env` from `.env.example` before running the server.
+
+## Local PostgreSQL
+
+The backend connects to a single standalone PostgreSQL Docker container that is not managed by compose.
+The container exposes `5432` on the host and the service uses its own schema inside the shared database.
+
+Commands:
+
+- `npm run db:up`
+- `npm run db:status`
+- `npm run db:down`
+
+Default schema:
+
+- `greyline_be`
