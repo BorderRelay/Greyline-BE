@@ -4,8 +4,10 @@ import { loginRoute } from "./login.js";
 import { logoutRoute } from "./logout.js";
 import { meRoute } from "./me.js";
 import { refreshRoute } from "./refresh.js";
+import { registerRoute } from "./register.js";
 
 export const authRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  await app.register(registerRoute);
   await app.register(loginRoute);
   await app.register(refreshRoute);
   await app.register(meRoute);
