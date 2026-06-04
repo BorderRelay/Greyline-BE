@@ -1,5 +1,6 @@
 import Fastify, { type FastifySchemaValidationError, type FastifyServerOptions } from "fastify";
 import { TypeBoxValidatorCompiler, type TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import rateLimit from "@fastify/rate-limit";
 
 import { env, type AppConfig } from "./config/env.js";
 import { AppError, isAppError } from "./lib/app-error.js";
@@ -91,6 +92,7 @@ export function buildApp(options: BuildAppOptions = {}) {
 
   app.register(corsPlugin, { config });
   app.register(sensiblePlugin);
+  app.register(rateLimit, { global: false });
   app.register(dbPlugin, { config });
   app.register(authContextPlugin);
   app.register(openApiPlugin, { config });

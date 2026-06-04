@@ -20,11 +20,18 @@ export const openApiPlugin = fp<{ config: AppConfig }>(async (app, options) => {
         },
       ],
       tags: [
-        {
-          name: "system",
-          description: "System and infrastructure endpoints",
-        },
+        { name: "system", description: "System and infrastructure endpoints" },
+        { name: "auth", description: "Authentication endpoints" },
       ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
     },
   });
 

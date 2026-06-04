@@ -1,6 +1,7 @@
 import fp from "fastify-plugin";
 
 import { AppError } from "../lib/app-error.js";
+import { verifyAccessToken } from "../services/auth.service.js";
 
 export const authContextPlugin = fp((app) => {
   app.decorateRequest("auth", null);
@@ -11,8 +12,15 @@ export const authContextPlugin = fp((app) => {
     }
   });
 
-  app.addHook("onRequest", (request, _reply, done) => {
-    request.auth = null;
-    done();
+  app.addHook("onRequest", async (request) => {
+    const header = request.headers.authorization;
+    if (!header?.startsWith("Bearer ")) {
+      request.auth = null;
+      return;
+    }
+
+    const token = header.slice(7);
+    const payload = await verifyAccessToken(token);
+    request.auth = payload;
   });
 });
