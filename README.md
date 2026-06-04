@@ -42,6 +42,8 @@ Key docs:
 ## Scripts
 
 - `npm run dev`
+- `npm run server:dev`
+- `npm run server:start`
 - `npm run build`
 - `npm run start`
 - `npm run check`
@@ -50,6 +52,8 @@ Key docs:
 - `npm run format`
 - `npm run format:check`
 - `npm run test`
+- `npm run db:bootstrap`
+- `npm run db:migrate`
 
 ## Environment
 
@@ -59,13 +63,21 @@ Create a local `.env` from `.env.example` before running the server.
 
 The backend connects to a single standalone PostgreSQL Docker container that is not managed by compose.
 The container exposes `5432` on the host and the service uses its own schema inside the shared database.
+`npm run dev` first tries the configured `DATABASE_URL`. If the database is not reachable and the target is local, it starts the managed Docker container and then runs migrations before starting the server.
 
 Commands:
 
+- `npm run db:bootstrap`
 - `npm run db:up`
 - `npm run db:status`
 - `npm run db:down`
+- `npm run db:migrate`
 
 Default schema:
 
 - `greyline_be`
+
+## Schema Management
+
+Schema changes are managed through SQL migration files in `migrations/`.
+`npm run db:migrate` applies unapplied migrations in filename order and records them in `greyline_be.schema_migrations`.

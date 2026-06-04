@@ -8,14 +8,18 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "npm run db:bootstrap && npm run server:dev",
+    "server:dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "start": "npm run server:start",
+    "server:start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
     "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "db:bootstrap": "node scripts/dev/bootstrap.mjs",
     "db:up": "node scripts/dev/postgres.mjs up",
     "db:down": "node scripts/dev/postgres.mjs down",
     "db:status": "node scripts/dev/postgres.mjs status",
+    "db:migrate": "node scripts/dev/migrate.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
@@ -28,7 +32,8 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/sensible": "^6.0.3",
     "dotenv": "^16.6.1",
-    "fastify": "^5.6.1"
+    "fastify": "^5.6.1",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

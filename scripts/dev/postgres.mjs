@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const containerName = "greyline-postgres";
@@ -8,7 +7,6 @@ const dbName = "greyline";
 const dbUser = "postgres";
 const dbPassword = "postgres";
 const hostPort = "5432";
-const initSqlPath = resolve("scripts/db/init-postgres.sql");
 
 const command = process.argv[2] ?? "up";
 
@@ -83,19 +81,9 @@ function waitUntilReady() {
   throw new Error("PostgreSQL did not become ready in time.");
 }
 
-function initSchema() {
-  const sql = readFileSync(initSqlPath);
-  execFileSync("docker", ["exec", "-i", containerName, "psql", "-U", dbUser, "-d", dbName], {
-    input: sql,
-    stdio: ["pipe", "pipe", "pipe"],
-    encoding: "utf8",
-  });
-}
-
 if (command === "up") {
   ensureContainer();
   waitUntilReady();
-  initSchema();
   console.log(`PostgreSQL container ${containerName} is ready.`);
   process.exit(0);
 }
