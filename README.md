@@ -37,6 +37,7 @@ Key docs:
 
 - `backend-api-implementation-spec.md`
 - `database-schema-implementation-spec.md`
+- `backend-server-foundation-spec.md`
 - `final-rdb-structure-with-marketplace.md`
 
 ## Scripts
@@ -58,6 +59,15 @@ Key docs:
 ## Environment
 
 Create a local `.env` from `.env.example` before running the server.
+
+Core env keys:
+
+- `DATABASE_URL`
+- `DATABASE_SCHEMA`
+- `LOG_LEVEL`
+- `CORS_ORIGIN`
+- `SWAGGER_ENABLED`
+- `SWAGGER_ROUTE_PREFIX`
 
 ## Local PostgreSQL
 
@@ -82,3 +92,14 @@ Default schema:
 
 Schema changes are managed through SQL migration files in `migrations/`.
 `npm run db:migrate` applies unapplied migrations in filename order and records them in `greyline_be.schema_migrations`.
+
+## Server Baseline
+
+The backend now uses a plugin-based Fastify baseline with:
+
+- TypeBox route schemas
+- shared error envelope
+- PostgreSQL startup verification
+- Swagger/OpenAPI generation
+- development-only Swagger UI by default at `/documentation`
+- auth context stub for future protected routes
