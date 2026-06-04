@@ -14,6 +14,9 @@ export type AppConfig = {
   SWAGGER_ROUTE_PREFIX: string;
   APP_NAME: string;
   APP_VERSION: string;
+  JWT_SECRET: string;
+  JWT_ACCESS_EXPIRES_IN: number;
+  REFRESH_TOKEN_EXPIRES_DAYS: number;
 };
 
 function readString(name: string, fallback?: string) {
@@ -32,6 +35,17 @@ function readPort(name: string, fallback: number) {
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`Invalid port in environment variable ${name}: ${raw}`);
+  }
+
+  return parsed;
+}
+
+function readPositiveInt(name: string, fallback: number) {
+  const raw = process.env[name] ?? String(fallback);
+  const parsed = Number(raw);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid positive integer in environment variable ${name}: ${raw}`);
   }
 
   return parsed;
@@ -73,6 +87,9 @@ export function loadEnv(): AppConfig {
     SWAGGER_ROUTE_PREFIX: readString("SWAGGER_ROUTE_PREFIX", "/documentation"),
     APP_NAME: readString("APP_NAME", "greyline-be"),
     APP_VERSION: readString("APP_VERSION", "0.1.0"),
+    JWT_SECRET: readString("JWT_SECRET"),
+    JWT_ACCESS_EXPIRES_IN: readPositiveInt("JWT_ACCESS_EXPIRES_IN", 900),
+    REFRESH_TOKEN_EXPIRES_DAYS: readPositiveInt("REFRESH_TOKEN_EXPIRES_DAYS", 30),
   };
 }
 

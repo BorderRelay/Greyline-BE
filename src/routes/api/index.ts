@@ -1,5 +1,7 @@
-import type { FastifyPluginCallback } from "fastify";
+import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 
-export const registerApiRoutes: FastifyPluginCallback = (_app, _options, done) => {
-  done();
+import { authRoutes } from "./auth/index.js";
+
+export const registerApiRoutes: FastifyPluginAsyncTypebox = async (app) => {
+  await app.register(authRoutes, { prefix: "/auth" });
 };
