@@ -125,7 +125,7 @@ describe("GET /api/stash", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ money: "500", items: [] });
+    expect(res.json()).toMatchObject({ accountId: account.accountId, money: 500, items: [] });
   });
 
   it("returns stash items with correct fields", async () => {
@@ -149,14 +149,15 @@ describe("GET /api/stash", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const body = res.json<{ money: string; items: unknown[] }>();
-    expect(body.money).toBe("500");
+    const body = res.json<{ money: number; items: unknown[] }>();
+    expect(body.money).toBe(500);
     expect(body.items).toHaveLength(1);
     expect(body.items[0]).toMatchObject({
       itemDefinitionId: itemDefId,
       quantity: 1,
       loadedAmmoCount: null,
       name: "Gold Watch",
+      weight: 0.1,
       type: "valuable",
       stackable: false,
       maxStack: 1,
