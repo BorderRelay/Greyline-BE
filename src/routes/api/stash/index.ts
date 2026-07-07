@@ -11,14 +11,15 @@ const StashItem = Type.Object({
   loadedAmmoCount: Type.Union([Type.Integer(), Type.Null()]),
   name: Type.String(),
   type: Type.String(),
-  weight: Type.String(),
+  weight: Type.Number(),
   baseValue: Type.Integer(),
   stackable: Type.Boolean(),
   maxStack: Type.Integer(),
 });
 
 const Reply = Type.Object({
-  money: Type.String(),
+  accountId: Type.String(),
+  money: Type.Integer(),
   items: Type.Array(StashItem),
 });
 
@@ -34,10 +35,12 @@ export const stashRoutes: FastifyPluginAsyncTypebox = async (app) => {
     handler: async (request) => {
       if (!request.auth) throw new AppError(401, "UNAUTHORIZED", "Authentication is required.");
 
-      const stash = await getStash(app.db, request.auth.accountId);
+      const accountId = request.auth.accountId;
+      const stash = await getStash(app.db, accountId);
 
       return {
-        money: stash.money,
+        accountId,
+        money: Number(stash.money),
         items: stash.items.map((item) => ({
           inventoryItemId: item.inventory_item_id,
           itemDefinitionId: item.item_definition_id,
@@ -45,7 +48,7 @@ export const stashRoutes: FastifyPluginAsyncTypebox = async (app) => {
           loadedAmmoCount: item.loaded_ammo_count,
           name: item.name,
           type: item.type,
-          weight: item.weight,
+          weight: Number(item.weight),
           baseValue: item.base_value,
           stackable: item.stackable,
           maxStack: item.max_stack,
