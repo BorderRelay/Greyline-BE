@@ -11,6 +11,7 @@ export default tseslint.config(
       "eslint.config.mjs",
       "commitlint.config.mjs",
       "prettier.config.mjs",
+      "vitest.config.ts",
       "scripts/**",
     ],
   },
