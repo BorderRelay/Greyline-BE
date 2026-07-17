@@ -4,4 +4,4 @@
 
 형식: `- [제목](파일명.md) — 한 줄 요약 (작성일)`
 
-- [백엔드 스펙 대비 구현 격차 분석](remaining-work.md) — sell/raid-results API 미구현, item_definitions 시드 부재 확인, 이슈 #7·#8·#9 생성 (2026-07-17)
+- [백엔드 스펙 대비 구현 격차 분석](remaining-work.md) — sell/raid-results API 미구현, item_definitions 시드 부재 확인, 이슈 #7·#8·#9 생성 (2026-07-17) / **갱신**: #7·#8·#9 완료 확인, 마켓플레이스 리스팅·구매 API 미구현으로 이슈 #13·#14 생성 (2026-07-17)

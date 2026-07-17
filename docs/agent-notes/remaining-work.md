@@ -45,3 +45,44 @@
 
 - **`backend-server-foundation-spec.md` 파일 부재**: `CLAUDE.md`가 인용하는 이 파일명이 `Greyline-Project-Docs/docs/`에 실제로 존재하지 않음(해당 디렉터리에는 `backend-stack-decision-record.md`, `backend-auth-spec.md`만 있음). 코드 구현 격차가 아니라 문서 참조 오류로 판단되어 별도 이슈를 만들지 않음 — 다음에 `CLAUDE.md`를 수정할 사람이 참고할 것.
 - **마켓플레이스 API**: `backend-api-implementation-spec.md`가 §1에서 명시적으로 marketplace를 스코프 밖으로 선언하고 있고, 이번 조사 지시 범위(인용된 4개 문서)에도 `marketplace-system-spec.md`가 포함되지 않아 격차로 플래그하지 않음. DB 테이블은 이미 존재하므로 추후 API 스펙이 확정되면 별도로 다뤄야 함.
+  - **2026-07-17 갱신**: 이후 조사(아래 "2026-07-17 재조사" 절)에서 `marketplace-system-spec.md`와 `final-rdb-structure-with-marketplace.md`가 이미 API 스펙 수준으로 확정되어 있음을 확인, 이슈 #13·#14로 플래그함. 위 문단은 "당시 조사 범위 밖이었다"는 이력으로 남겨두고 덮어쓰지 않음.
+
+---
+
+## 2026-07-17 재조사 — #7·#8·#9 반영 후 현재 상태
+
+### 확인 방법
+
+- `git fetch origin` 후 브랜치 전환 없이 `git diff main...origin/develop --stat`, `git ls-tree -r origin/develop`로 `develop` 최신 상태 확인 (`8033480..7962f11`)
+- `main`은 여전히 초기 스캐폴드 상태이며 모든 기능은 `develop`에 머지되어 있음
+
+### 이번에 재확인한 완료 항목 (재플래그 금지, 이슈 #7·#8·#9 반영)
+
+- 인증: `POST /api/auth/login|refresh|logout|logout-all`, `GET /api/auth/me`, `POST /api/auth/register` — `src/routes/api/auth/`
+- 스태시 조회: `GET /api/stash`
+- 로드아웃 조회/장착/해제: `GET /api/loadout`, `POST /api/loadout/equip`, `POST /api/loadout/unequip`
+- NPC 판매: `POST /api/sell/item`, `POST /api/sell/bulk` — `src/routes/api/sell/index.ts`, `src/repositories/sell.repository.ts` (이슈 #7 CLOSED)
+- 레이드 결과 제출: `POST /api/raid-results` — `src/routes/api/raid-results/index.ts`, `src/repositories/raid-result.repository.ts` (이슈 #8 CLOSED)
+- `item_definitions` 시드: `migrations/0004_seed_item_definitions.sql` (이슈 #9 CLOSED)
+- DB: `migrations/0002_tables.sql`에 `item_definitions.marketplace_policy` 컬럼과 `inventory_items.location_type` `marketplace_escrow` 값까지 이미 반영되어 있음 — 마켓플레이스 스키마는 완전히 구현 준비 완료 상태
+
+### 새로 확인된 격차 (이슈 생성 완료)
+
+#### 1. 마켓플레이스 리스팅 API 미구현 — issue #13
+
+- `marketplace-system-spec.md` §6-13, `final-rdb-structure-with-marketplace.md` §16-18·25-26에 정의된 리스팅 등록/취소/브라우즈/셀러 조회 API가 어느 브랜치에도 없음 (`git ls-tree -r origin/develop | grep -i market` 무결과)
+- `marketplace_listings` 테이블과 관련 인덱스는 이미 존재하지만 사용하는 repository/route 없음
+
+#### 2. 마켓플레이스 구매(즉시구매) API 미구현 — issue #14
+
+- `marketplace-system-spec.md` §14-17, `final-rdb-structure-with-marketplace.md` §19-21에 정의된 즉시구매/정산 트랜잭션이 어느 브랜치에도 없음
+- `marketplace_purchases`, `marketplace_purchase_items` 테이블은 존재하지만 사용 코드 없음
+- 리스팅 등록 API(issue #13)에 의존 — 순서상 #13 선행 필요
+
+### 조사했으나 이슈화하지 않은 항목
+
+- **크래프팅/퀘스트**: `backend-api-implementation-spec.md` §1에서 명시적으로 스코프 밖으로 선언되어 있고, `Greyline-Project-Docs/docs/` 전체에 crafting/quest 관련 스펙 문서 자체가 없음 (`grep -il craft *.md` 무결과) — 문서화된 요구사항이 없으므로 이슈화하지 않음
+- **관리자(admin) 엔드포인트**: 전체 스펙 문서에 "admin" 언급 자체가 없음 — 요구사항 부재로 이슈화하지 않음
+- **`characters` 테이블/API**: `final-rdb-structure-with-marketplace.md` §4에서 "Optional later"로 명시되어 MVP 범위가 아님 — 이슈화하지 않음
+- **세션 목록 조회 API** (`GET /api/auth/sessions` 등): `backend-auth-spec.md` §13 Open Decisions에 세션 정리 잡(cleanup job) 필요성만 언급되어 있고 별도 엔드포인트로 명시되어 있지 않음 — 미확정 사항이라 이슈화하지 않음
+- **마켓플레이스 만료(expiration) 배치/워커**: `marketplace-system-spec.md` §13이 MVP 권장 방식으로 "lazy expiration on read/mutation"을 명시하고 있어 별도 백그라운드 잡은 필수가 아님 — issue #13 인수조건에 lazy expiration 처리를 포함시켰고 워커는 후속 과제로 남김
