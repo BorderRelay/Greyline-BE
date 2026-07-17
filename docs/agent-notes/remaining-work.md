@@ -86,3 +86,30 @@
 - **`characters` 테이블/API**: `final-rdb-structure-with-marketplace.md` §4에서 "Optional later"로 명시되어 MVP 범위가 아님 — 이슈화하지 않음
 - **세션 목록 조회 API** (`GET /api/auth/sessions` 등): `backend-auth-spec.md` §13 Open Decisions에 세션 정리 잡(cleanup job) 필요성만 언급되어 있고 별도 엔드포인트로 명시되어 있지 않음 — 미확정 사항이라 이슈화하지 않음
 - **마켓플레이스 만료(expiration) 배치/워커**: `marketplace-system-spec.md` §13이 MVP 권장 방식으로 "lazy expiration on read/mutation"을 명시하고 있어 별도 백그라운드 잡은 필수가 아님 — issue #13 인수조건에 lazy expiration 처리를 포함시켰고 워커는 후속 과제로 남김
+
+---
+
+## 2026-07-17 3차 재조사 — #13·#14 진행 중(마켓플레이스, 다른 에이전트가 병행 작업 중) 상태에서 그 외 격차 확인
+
+### 확인 방법
+
+- `git fetch origin` 후 `git diff main...origin/develop --stat`, `git ls-tree -r origin/develop`로 `develop`의 `src/routes/api/`, `src/repositories/`, `migrations/` 전체 재확인
+- `backend-api-implementation-spec.md`, `database-schema-implementation-spec.md`, `final-rdb-structure-with-marketplace.md`, `backend-architecture-spec.md`, `backend-auth-spec.md`(`backend-server-foundation-spec.md`가 실제로 없어 대체) 전문을 처음부터 끝까지 재독
+- DB 스펙 §13 필수 인덱스, §23/§24 마켓플레이스 제약조건을 `migrations/0002_tables.sql`과 라인 단위로 대조 — 인덱스 11개, 제약조건 전부 이미 존재 확인 (마켓플레이스 스키마 포함, #13/#14 착수 이전부터 이미 완비)
+- `gh issue list --state all`, `gh pr list --state all`로 #1-14 전체 재확인 (#1-6·10-12는 PR, #7·#8·#9는 CLOSED 이슈, #13·#14는 OPEN 진행 중) — 중복 없음 확인
+
+### 새로 확인된 격차 (이슈 생성 완료)
+
+#### 1. 만료 세션 정리 메커니즘 부재 — issue #15
+
+- `backend-auth-spec.md` §13 Open Decisions 3번: "Session cleanup job — expired session rows accumulate. A periodic cleanup job or lazy deletion on login should be added." — 아직 미구현
+- `src/repositories/session.repository.ts`에 만료 세션을 대상으로 한 삭제 함수 자체가 없음 (`createSession`/`findSessionByTokenHash`/`rotateSession`/`deleteSession`/`deleteAllSessions`뿐)
+- `idx_account_sessions_expires_at` 인덱스는 이미 존재하여 정리 쿼리 준비는 되어 있으나 사용하는 코드가 없음
+- 이전 조사(위 "세션 목록 조회 API" 항목)에서는 별도 엔드포인트가 명시되지 않았다는 이유로 이슈화하지 않았으나, 정리 메커니즘 자체(엔드포인트가 아니어도 됨 — lazy deletion도 스펙이 허용)는 "should be added"로 명확히 요구되어 있어 이번에 이슈화함
+
+### 조사했으나 이슈화하지 않은 항목 (재확인)
+
+- **비밀번호 재설정/계정 삭제/프로필 수정**: `Greyline-Project-Docs/docs/` 전체(30개 문서)를 "password reset|account deletion|delete account|프로필 수정|회원 탈퇴|비밀번호 재설정|profile update|change password|update profile" 패턴으로 검색 — 전체 무결과. 스펙에 언급 자체가 없으므로 이슈화하지 않음
+- **리프레시 토큰 sliding expiry, JWT_SECRET 로테이션** (`backend-auth-spec.md` §13의 2번·4번): "Consider"/"may be needed" 수준의 제안이지 확정 요구사항이 아니라서 이슈화하지 않음
+- **`backend-architecture-spec.md`의 "items" 도메인**: 상위 수준 초안 문서(architecture-spec)에는 `items` 도메인이 언급되지만, 더 구체적이고 최신인 `backend-api-implementation-spec.md` §5는 도메인을 `auth`/`stash`/`loadout`/`sell`/`raid-results` 5개로 명시적으로 확정하고 있어 상위 문서와 충돌 시 구현 근접 문서가 우선 — 별도 아이템 카탈로그 엔드포인트 요구사항으로 보지 않음
+- **레이트 리밋**: `backend-auth-spec.md` §8이 로그인 엔드포인트에 분당 10회 제한을 요구 — `src/app.ts`에서 `@fastify/rate-limit` 플러그인이 `global: false`로 등록되어 있고 라우트별 설정이 이미 적용되어 있음을 코드로 직접 확인 (구현 완료, 격차 아님)
