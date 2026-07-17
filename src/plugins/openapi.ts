@@ -26,7 +26,7 @@ export const openApiPlugin = fp<{ config: AppConfig }>(async (app, options) => {
         { name: "loadout", description: "Loadout management endpoints" },
         { name: "sell", description: "NPC sell (shop) endpoints" },
         { name: "raid-results", description: "Raid result submission endpoints" },
-        { name: "marketplace", description: "Player marketplace listing endpoints" },
+        { name: "marketplace", description: "Marketplace listing and purchase endpoints" },
       ],
       components: {
         securitySchemes: {
