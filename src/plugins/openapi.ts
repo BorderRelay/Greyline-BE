@@ -25,6 +25,7 @@ export const openApiPlugin = fp<{ config: AppConfig }>(async (app, options) => {
         { name: "stash", description: "Stash and inventory endpoints" },
         { name: "loadout", description: "Loadout management endpoints" },
         { name: "sell", description: "NPC sell (shop) endpoints" },
+        { name: "raid-results", description: "Raid result submission endpoints" },
       ],
       components: {
         securitySchemes: {
