@@ -113,3 +113,32 @@
 - **리프레시 토큰 sliding expiry, JWT_SECRET 로테이션** (`backend-auth-spec.md` §13의 2번·4번): "Consider"/"may be needed" 수준의 제안이지 확정 요구사항이 아니라서 이슈화하지 않음
 - **`backend-architecture-spec.md`의 "items" 도메인**: 상위 수준 초안 문서(architecture-spec)에는 `items` 도메인이 언급되지만, 더 구체적이고 최신인 `backend-api-implementation-spec.md` §5는 도메인을 `auth`/`stash`/`loadout`/`sell`/`raid-results` 5개로 명시적으로 확정하고 있어 상위 문서와 충돌 시 구현 근접 문서가 우선 — 별도 아이템 카탈로그 엔드포인트 요구사항으로 보지 않음
 - **레이트 리밋**: `backend-auth-spec.md` §8이 로그인 엔드포인트에 분당 10회 제한을 요구 — `src/app.ts`에서 `@fastify/rate-limit` 플러그인이 `global: false`로 등록되어 있고 라우트별 설정이 이미 적용되어 있음을 코드로 직접 확인 (구현 완료, 격차 아님)
+
+---
+
+## 2026-07-18 4차 재조사 — MVP 전체 스코프로 조사 범위 확대 (게임 루프 문서 포함)
+
+### 확인 방법
+
+- 이전 3차례 조사는 `backend-api-implementation-spec.md`와 DB 스펙 위주로만 대조했음. 이번에는 지시에 따라 `first-playable-scope.md`, `mvp-canonical-spec.md`(스코프 경계), `core-loop-detail.md`, `camp-meta-loop.md`, `extraction-system-spec.md`, `save-data-spec.md`, `item-schema-spec.md`(게임플레이 시스템 요구사항)를 전문 재독하고, 이미 구현된 `src/routes/api/`, `src/repositories/`, `migrations/`(특히 `0002_tables.sql`) 및 `backend-api-implementation-spec.md`와 라인 단위로 재대조함
+- `git fetch origin` 후 `origin/develop` 기준 (`f9855db`, CI 워크플로까지 머지된 상태) 확인, 브랜치 전환 없음
+- `gh issue list --state all`로 #7~#15 재확인 — #13·#14(마켓플레이스)가 이번 조사 시점에는 CLOSED로 전환되어 있음을 확인, 중복 없음
+
+### 검토 결과: 새로운 격차 없음
+
+게임 루프 문서들을 정독한 결과, 새로 발견된 요구사항은 대부분 이미 구현된 5개 API 도메인(`auth`/`stash`/`loadout`/`sell`/`raid-results`)과 DB 스키마(특히 `item_definitions`의 `ammo_type`/`weapon_class`/`magazine_size`/`heal_amount`, `inventory_items.loaded_ammo_count`, `account_profiles.money`)로 이미 충족되어 있음을 재확인:
+
+- **`save-data-spec.md` §3-18 (영속화 요구사항)**: `Account`/`Stash`/`InventoryItem`/`Loadout`/`RaidResult` 전 도메인이 이미 마이그레이션·리포지토리에 존재. money가 별도 필드(§5), 무기/탄약 분리 및 `loaded_ammo_count`(§7), raid result 최소 필드(`raidId`/`accountId`/`startedAt`/`endedAt`/`result`/`extractedItemIds`/`deathPosition`/`extractionPointId`, §10) 전부 확인됨
+- **`item-schema-spec.md` §9 (권장 스키마)**: `id`/`name`/`type`/`description`/`weight`/`baseValue`/`stackable`/`maxStack`/`usableInRaid` 및 타입별 확장 필드(`weaponClass`/`ammoType`/`magazineSize`/`healAmount`, §10)가 `item_definitions` 테이블과 1:1로 일치
+- **`extraction-system-spec.md`**: 추출 판정(이동/피격 시 취소, 10초 홀드)은 전적으로 클라이언트(레이드 세션) 로직이며, 백엔드는 완료된 결과만 `POST /api/raid-results`로 수신 — `mvp-canonical-spec.md` §18("the first playable proves the extraction loop in single-player or local simulation first")과 일치, 별도 백엔드 엔드포인트 불필요
+- **`core-loop-detail.md`/`camp-meta-loop.md`**: 카프 메타루프(스태시/로드아웃/판매/사후 리뷰)가 요구하는 기능은 이미 전부 구현됨. "무게 기반 휴대 제한"은 스펙상 서버가 강제하는 하드 캡이 아니라(§8 in `mvp-canonical-spec.md`: "weight does not reduce movement speed/sprint efficiency/noise" — 순수 클라이언트 표시/판단 요소) 별도 백엔드 검증 로직 요구사항으로 보지 않음
+
+### 검토했으나 이슈화하지 않은 특이사항 (판단 근거 기록)
+
+- **레이드 결과 제출 시 로드아웃 아이템 이동(장비 소모/생환/분실) 미구현**: `save-data-spec.md` §11이 스태시 모델에 "removing equipped items taken into raid / restoring surviving returned equipment / removing lost raid-carried items after failed runs"를 언급하지만, 더 구현 근접한 `backend-api-implementation-spec.md` §16 "Transaction boundary"는 성공 시 `raid_results`+`raid_result_items` insert 및 스태시 병합만, 실패 시 `raid_results` insert만 명시 — 로드아웃 mutation은 트랜잭션 경계에 없음. 기존 원칙(상위/개념 문서와 구현 근접 문서 충돌 시 구현 근접 문서 우선, 위 3차 조사 "items 도메인" 판단과 동일 논리)에 따라 격차로 플래그하지 않음
+- **레이드 중 실제로 루팅했는지 서버가 검증하지 않는 문제** (`extractedItems`를 클라이언트가 임의로 제출 가능): `backend-api-implementation-spec.md` §3 "Server authority"가 "extracted item ownership outcome"을 클라이언트 신뢰 금지 대상으로 명시하지만, 이를 진짜로 막으려면 서버 권위 레이드 시뮬레이션(realtime raid state)이 필요 — `tech-stack-decision.md` §10·`backend-api-implementation-spec.md` §1이 "realtime raid input/state sync"를 명시적으로 스코프 밖(Colyseus 도입 이후)으로 선언하고 있어 MVP 격차로 보지 않음
+- **아이템 카탈로그 조회 API(`GET /api/item-definitions` 등) 부재**: `item-schema-spec.md` §16이 "같은 아이템 정의 시스템이 레이드/캠프 레이어를 모두 서비스해야 한다"고 언급하지만, 이를 라이브 백엔드 엔드포인트로 요구하는 문장은 없고 `backend-api-implementation-spec.md` §5(도메인 5개 확정)에도 없음 — 프론트(Phaser) 정적 콘텐츠 모듈로 해석 가능하여 이슈화하지 않음
+
+### 결론
+
+이번 4차 조사에서는 새로운 이슈를 생성하지 않았다. MVP 스코프(첫 플레이어블 + 캐노니컬 스펙 경계) 내에서 백엔드가 지원해야 할 영속화·API 요구사항은 이전 3차 조사까지 생성된 이슈(#7·#8·#9·#13·#14, 전부 CLOSED)와 #15(진행 중, 별도 에이전트 작업)로 이미 커버되어 있다.
