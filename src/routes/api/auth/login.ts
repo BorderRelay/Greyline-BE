@@ -57,8 +57,11 @@ export const loginRoute: FastifyPluginAsyncTypebox = async (app) => {
         throw new AppError(401, "INVALID_CREDENTIALS", "Invalid email or password.");
       }
 
-      // Lazy cleanup: sweep expired sessions on every successful login so
-      // account_sessions never accumulates stale rows indefinitely.
+      // Lazy cleanup: sweep a bounded batch of expired sessions on every
+      // successful login so account_sessions never accumulates stale rows
+      // indefinitely. Bounded (default 500 rows/call, see
+      // deleteExpiredSessions) so this stays fast even with a large backlog
+      // instead of doing an unbounded full-table sweep on the login hot path.
       await deleteExpiredSessions(app.db);
 
       const refreshToken = generateRefreshToken();
