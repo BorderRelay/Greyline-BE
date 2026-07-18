@@ -70,3 +70,16 @@ export async function deleteSession(db: Pool, tokenHash: string, accountId: stri
 export async function deleteAllSessions(db: Pool, accountId: string): Promise<void> {
   await db.query(`delete from greyline_be.account_sessions where account_id = $1`, [accountId]);
 }
+
+/**
+ * Lazily sweeps expired `account_sessions` rows. Called on login so stale
+ * sessions never accumulate indefinitely — see backend-auth-spec.md §13
+ * "Session cleanup job" (lazy deletion on login is one of the two accepted
+ * approaches). Uses `idx_account_sessions_expires_at` for the scan.
+ */
+export async function deleteExpiredSessions(db: Pool): Promise<number> {
+  const result = await db.query(
+    `delete from greyline_be.account_sessions where expires_at <= now()`,
+  );
+  return result.rowCount ?? 0;
+}

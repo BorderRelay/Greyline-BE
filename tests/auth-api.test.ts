@@ -262,6 +262,46 @@ describe("auth api", () => {
     expect(refreshAfterLogout.json<AuthErrorBody>().error.code).toBe("INVALID_REFRESH_TOKEN");
   });
 
+  it("sweeps expired sessions on login (lazy cleanup)", async () => {
+    const app = createApp();
+    const account = await seedAccount(app, { password: "Password123!" });
+
+    const expiredSessionId = randomUUID();
+    await app.db.query(
+      `insert into greyline_be.account_sessions
+         (id, account_id, refresh_token_hash, expires_at)
+       values ($1, $2, $3, now() - interval '1 day')`,
+      [expiredSessionId, account.accountId, `expired-hash-${expiredSessionId}`],
+    );
+
+    const staleButValidSessionId = randomUUID();
+    await app.db.query(
+      `insert into greyline_be.account_sessions
+         (id, account_id, refresh_token_hash, expires_at)
+       values ($1, $2, $3, now() + interval '1 day')`,
+      [staleButValidSessionId, account.accountId, `valid-hash-${staleButValidSessionId}`],
+    );
+
+    const { response } = await login(app, account);
+    expect(response.statusCode).toBe(200);
+
+    const expiredRow = await app.db.query(
+      `select id from greyline_be.account_sessions where id = $1`,
+      [expiredSessionId],
+    );
+    expect(expiredRow.rowCount).toBe(0);
+
+    const remainingSessions = await app.db.query<{ count: string }>(
+      `select count(*)::text as count
+       from greyline_be.account_sessions
+       where account_id = $1`,
+      [account.accountId],
+    );
+
+    // The still-valid pre-existing session plus the new session created by this login.
+    expect(Number(remainingSessions.rows[0]?.count ?? "0")).toBe(2);
+  });
+
   it("logout-all invalidates every active session for the account", async () => {
     const app = createApp();
     const account = await seedAccount(app, { password: "Password123!" });
