@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: greyline
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d greyline"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greyline
+      DATABASE_SCHEMA: greyline_be
+      LOG_LEVEL: info
+      CORS_ORIGIN: "*"
+      SWAGGER_ENABLED: "false"
+      JWT_SECRET: ci-only-secret-do-not-use-in-production-32chars
+      JWT_ACCESS_EXPIRES_IN: "900"
+      REFRESH_TOKEN_EXPIRES_DAYS: "30"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Apply database migrations
+        run: npm run db:migrate
+
+      - name: Run tests
+        run: npm run test
