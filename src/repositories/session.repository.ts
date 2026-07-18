@@ -70,3 +70,31 @@ export async function deleteSession(db: Pool, tokenHash: string, accountId: stri
 export async function deleteAllSessions(db: Pool, accountId: string): Promise<void> {
   await db.query(`delete from greyline_be.account_sessions where account_id = $1`, [accountId]);
 }
+
+const DEFAULT_CLEANUP_BATCH_SIZE = 500;
+
+/**
+ * Lazily sweeps expired `account_sessions` rows across ALL accounts. Called
+ * on login so stale sessions never accumulate indefinitely — see
+ * backend-auth-spec.md §13 "Session cleanup job" (lazy deletion on login,
+ * bounded per call). Bounded via `LIMIT` (through a subquery, since Postgres
+ * doesn't support `DELETE ... LIMIT` directly) so a large backlog of expired
+ * rows can never turn a single login into a full-table sweep — worst case is
+ * a few extra logins to fully drain a backlog. Uses
+ * `idx_account_sessions_expires_at` for the scan.
+ */
+export async function deleteExpiredSessions(
+  db: Pool,
+  batchSize: number = DEFAULT_CLEANUP_BATCH_SIZE,
+): Promise<number> {
+  const result = await db.query(
+    `delete from greyline_be.account_sessions
+     where id in (
+       select id from greyline_be.account_sessions
+       where expires_at <= now()
+       limit $1
+     )`,
+    [batchSize],
+  );
+  return result.rowCount ?? 0;
+}
